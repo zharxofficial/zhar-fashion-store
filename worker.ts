@@ -1,6 +1,9 @@
 import { httpServerHandler } from 'cloudflare:node';
 import api from './api/index.ts';
 
-api.listen(3000);
+export default httpServerHandler({
+  port: 3000,
+  hostname: '0.0.0.0',
+});
 
-export default httpServerHandler({ port: 3000 });
+api.listen(3000);
