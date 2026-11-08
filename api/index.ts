@@ -102,7 +102,7 @@ const adminOnly = (req: Request, res: Response, next: NextFunction) => {
 
 const app = express();
 app.disable('x-powered-by');
-const app = express();
+
 
 app.disable('x-powered-by');
 
