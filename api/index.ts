@@ -398,6 +398,38 @@ app.put('/api/admin/orders/:id/payment', wrap(async (req, res) => {
 }));
 
 app.use('/api', (_req, res) => { res.status(404).json({ error: 'Not found.' }); });
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.is('application/json')) {
+    return next();
+  }
+
+  try {
+    const chunks: Buffer[] = [];
+    let size = 0;
+
+    for await (const chunk of req) {
+      const buffer = Buffer.isBuffer(chunk)
+        ? chunk
+        : Buffer.from(chunk);
+
+      size += buffer.length;
+
+      if (size > 200 * 1024) {
+        return res.status(413).json({
+          error: 'Request body too large'
+        });
+      }
+
+      chunks.push(buffer);
+    }
+
+    const raw = Buffer.concat(chunks).toString('utf8');
+    req.body = raw ? JSON.parse(raw) : {};
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[api error]', err?.message || err);          // details stay in server logs only
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
