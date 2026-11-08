@@ -102,7 +102,43 @@ const adminOnly = (req: Request, res: Response, next: NextFunction) => {
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '200kb' }));
+const app = express();
+
+app.disable('x-powered-by');
+
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.is('application/json')) {
+    return next();
+  }
+
+  try {
+    const chunks: Buffer[] = [];
+    let size = 0;
+
+    for await (const chunk of req) {
+      const buffer = Buffer.isBuffer(chunk)
+        ? chunk
+        : Buffer.from(chunk);
+
+      size += buffer.length;
+
+      if (size > 200 * 1024) {
+        return res.status(413).json({
+          error: 'Request body too large'
+        });
+      }
+
+      chunks.push(buffer);
+    }
+
+    const raw = Buffer.concat(chunks).toString('utf8');
+    req.body = raw ? JSON.parse(raw) : {};
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 app.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
 app.use((_req, res, next) => {
   if (!SUPABASE_URL || !ANON_KEY || !SERVICE_KEY) {
